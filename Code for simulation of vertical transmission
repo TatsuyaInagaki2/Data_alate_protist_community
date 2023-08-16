@@ -1,0 +1,71 @@
+# Simulation for vertical transmission
+## 1. Preparation
+library(tidyverse)
+library(vegan)
+mean_worker <- c(10415, 18618, 6009, 15815, 20033, 1949, 374, 107, 5924)
+mean_nymph <- c(819, 1914, 1310, 1509, 2060, 185, 210, 24, 959)
+
+## 2. Simulation
+### workers as source
+table3 <- tibble()
+table6 <- tibble()
+for(t in 1:20){
+  for(i in 1:5000){
+    set.seed(i)
+    com <- sample(1:9, size = t * 500, replace　=　TRUE, prob= mean_worker)
+    table <- tibble(sp = com, n = 1)
+    table2 <- table %>%
+      group_by(sp) %>%
+      summarise(n = sum(n)) %>%
+      mutate(rep = i)
+    table3 <- bind_rows(table2, table3)
+  }
+  table4 <- table3%>%
+    tidyr::spread(key=sp, value=n)%>%
+    rename(Pspp ="1", De = "2", DpIII = "3", Dspp2 = "4", Dspp1 = "5", Hol = "6",
+           Tri = "7", Tera = "8", small = "9") %>%
+    select(-rep) %>%
+    mutate_if(is.numeric, ~ replace_na(.x, 0)) %>%
+    vegan::decostand(method = "pa") %>%
+    mutate(presence = Pspp + De + DpIII + Dspp2 + Dspp1 + Hol + Tri + 
+             Tera + small, prop = presence/9) 
+  table3 <- tibble()
+  table5 <- tibble(size = t * 500, prop_all = mean(table4$prop))
+  table6 <- bind_rows(table5, table6)
+}
+
+
+### nymphs as source
+table3 <- tibble()
+table7 <- tibble()
+rm(table, table2, table4, table5)
+for(t in 1:20){
+  for(i in 1:5000){
+    set.seed(i)
+    com <- sample(1:9, size = t * 500, replace　=　TRUE, prob=mean_nymph)
+    table <- tibble(sp = com, n = 1)
+    table2 <- table %>%
+      group_by(sp)%>%
+      summarise(n = sum(n))%>%
+      mutate(rep = i)
+    table3 <- bind_rows(table2, table3)
+  }
+  table4 <- table3%>%
+    tidyr::spread(key=sp, value=n)%>%
+    rename(Pspp ="1", De = "2", DpIII = "3", Dspp2 = "4", Dspp1 = "5", Hol = "6",
+           Tri = "7", Tera = "8", small = "9") %>%
+    select(-rep) %>%
+    mutate_if(is.numeric, ~ replace_na(.x, 0)) %>%
+    vegan::decostand(method = "pa") %>%
+    mutate(presence = Pspp + De + DpIII + Dspp2 + Dspp1 + Hol + Tri + 
+             Tera + small, prop = presence/9) 
+  table3 <- tibble()
+  table5 <- tibble(size = t * 500, prop_all = mean(table4$prop))
+  table7 <- bind_rows(table5, table7)
+}
+
+## 3. Drawing graph
+table_w <- table6 %>% mutate(caste = "worker")
+table_wn <- table7 %>% mutate(caste = "nymph") %>% bind_rows(table_w)
+ggplot(table_wn, aes(x=size, y=prop_all, col=caste)) + geom_point() + geom_line() +
+  xlim(0,10000)
